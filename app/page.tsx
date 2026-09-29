@@ -243,7 +243,10 @@ function PhotoChoice({ label, choices, value, onChange }: { label: string; choic
 }
 
 function PhotoLightbox({ preview, onClose }: { preview: { patient: Patient; photo: PatientPhoto } | null; onClose: () => void }) {
-  return <Dialog open={!!preview} onOpenChange={(open) => !open && onClose()}><DialogContent className="paper-dialog photo-lightbox sm:max-w-5xl"><DialogHeader><DialogTitle>{preview?.photo.label}</DialogTitle><DialogDescription>{preview ? [fullName(preview.patient), preview.patient.dossier, preview.photo.date, preview.photo.kind, preview.photo.location, preview.photo.stage].filter(Boolean).join(" · ") : "Photographie médicale"}</DialogDescription></DialogHeader>{preview && <div className="antique-photo lightbox-photo" style={photoOverlayStyle(preview.photo)}><img src={preview.photo.dataUrl} alt={`${preview.photo.label} — ${fullName(preview.patient)}`}/></div>}</DialogContent></Dialog>;
+  const [ratio, setRatio] = useState(1);
+  useEffect(() => setRatio(1), [preview?.photo.id]);
+  const fittedStyle = preview ? ({ ...photoOverlayStyle(preview.photo), "--photo-ratio": ratio } as React.CSSProperties) : undefined;
+  return <Dialog open={!!preview} onOpenChange={(open) => !open && onClose()}><DialogContent className="paper-dialog photo-lightbox sm:max-w-5xl"><DialogHeader><DialogTitle>{preview?.photo.label}</DialogTitle><DialogDescription>{preview ? [fullName(preview.patient), preview.patient.dossier, preview.photo.date, preview.photo.kind, preview.photo.location, preview.photo.stage].filter(Boolean).join(" · ") : "Photographie médicale"}</DialogDescription></DialogHeader>{preview && <div className="lightbox-stage"><div className="antique-photo lightbox-photo" style={fittedStyle}><img src={preview.photo.dataUrl} alt={`${preview.photo.label} — ${fullName(preview.patient)}`} onLoad={(event) => setRatio(event.currentTarget.naturalWidth / event.currentTarget.naturalHeight)}/></div></div>}</DialogContent></Dialog>;
 }
 
 function PsychologyView({ items, patients, onAdd }: { items: PsychologyNote[]; patients: Patient[]; onAdd: () => void }) {
