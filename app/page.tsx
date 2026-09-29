@@ -237,7 +237,9 @@ function PhotoImportDialog({ pending, onCancel, onSave }: { pending: { patient: 
 }
 
 function PhotoChoice({ label, choices, value, onChange }: { label: string; choices: string[]; value?: string; onChange: (value: string) => void }) {
-  return <div className="photo-choice"><span>{label}</span><div>{choices.map((choice) => <button type="button" key={choice} className={value === choice ? "selected" : ""} aria-pressed={value === choice} onClick={() => onChange(value === choice ? "" : choice)}>{choice}</button>)}</div></div>;
+  const selected = (value ?? "").split(" · ").filter(Boolean);
+  const toggle = (choice: string) => onChange(selected.includes(choice) ? selected.filter((item) => item !== choice).join(" · ") : [...selected, choice].join(" · "));
+  return <div className="photo-choice"><span>{label} <small>plusieurs choix possibles</small></span><div>{choices.map((choice) => <button type="button" key={choice} className={selected.includes(choice) ? "selected" : ""} aria-pressed={selected.includes(choice)} onClick={() => toggle(choice)}>{choice}</button>)}</div></div>;
 }
 
 function PhotoLightbox({ preview, onClose }: { preview: { patient: Patient; photo: PatientPhoto } | null; onClose: () => void }) {
@@ -293,13 +295,13 @@ function InfoLine({ label, value }: { label: string; value?: string }) { return 
 function FormRow({ label, name, defaultValue, required, type = "text", placeholder, step }: { label: string; name: string; defaultValue?: string; required?: boolean; type?: string; placeholder?: string; step?: string }) { return <label>{label}<input className={field} name={name} defaultValue={defaultValue} required={required} type={type} placeholder={placeholder} step={step}/></label>; }
 function TextRow({ label, name, defaultValue, required }: { label: string; name: string; defaultValue?: string; required?: boolean }) { return <label>{label}<textarea className={field} name={name} defaultValue={defaultValue} required={required} rows={3}/></label>; }
 function SelectRow({ label, name, options }: { label: string; name: string; options: string[] }) { return <label>{label}<select className={field} name={name}><option value="">Non précisé</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>; }
-function QuickChoiceField({ label, name, choices, required, multiple = false, multiline = false, placeholder }: { label: string; name: string; choices: string[]; required?: boolean; multiple?: boolean; multiline?: boolean; placeholder?: string }) {
+function QuickChoiceField({ label, name, choices, required, multiple = true, multiline = false, placeholder }: { label: string; name: string; choices: string[]; required?: boolean; multiple?: boolean; multiline?: boolean; placeholder?: string }) {
   const [value, setValue] = useState("");
   const parts = value.split(" · ").filter(Boolean);
   const choose = (choice: string) => {
     if (!multiple) { setValue(choice); return; }
     setValue(parts.includes(choice) ? parts.filter((part) => part !== choice).join(" · ") : [...parts, choice].join(" · "));
   };
-  return <label className="quick-field"><span>{label}</span><span className="quick-choices" aria-label={`Choix rapides pour ${label}`}>{choices.map((choice) => <button type="button" key={choice} className={parts.includes(choice) || value === choice ? "selected" : ""} aria-pressed={parts.includes(choice) || value === choice} onClick={() => choose(choice)}>{choice}</button>)}</span>{multiline ? <textarea className={field} name={name} value={value} onChange={(e) => setValue(e.target.value)} required={required} rows={3} placeholder={placeholder}/> : <input className={field} name={name} value={value} onChange={(e) => setValue(e.target.value)} required={required} placeholder={placeholder}/>}</label>;
+  return <label className="quick-field"><span>{label}{multiple && <small> · plusieurs choix possibles</small>}</span><span className="quick-choices" aria-label={`Choix rapides pour ${label}`}>{choices.map((choice) => <button type="button" key={choice} className={parts.includes(choice) || value === choice ? "selected" : ""} aria-pressed={parts.includes(choice) || value === choice} onClick={() => choose(choice)}>{choice}</button>)}</span>{multiline ? <textarea className={field} name={name} value={value} onChange={(e) => setValue(e.target.value)} required={required} rows={3} placeholder={placeholder}/> : <input className={field} name={name} value={value} onChange={(e) => setValue(e.target.value)} required={required} placeholder={placeholder}/>}</label>;
 }
 function PatientSelect({ patients }: { patients: Patient[] }) { return <label>Patient *<select className={field} name="patientId" required>{patients.filter((p) => p.status !== "archive").map((p) => <option value={p.id} key={p.id}>{fullName(p)} · {p.dossier}</option>)}</select></label>; }
