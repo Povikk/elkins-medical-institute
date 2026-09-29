@@ -7,7 +7,8 @@ export const demoData: AppData = {
     city: "Valentine, New Hanover",
     header: "Soins, chirurgie et visites à domicile",
     signature: "E. Moreau, M.D.",
-    rpDate: "18 septembre 1900",
+    rpDate: "29 septembre 1899",
+    rpYear: 1899,
     currency: "$",
   },
   patients: [

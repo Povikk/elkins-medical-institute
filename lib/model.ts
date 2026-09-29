@@ -120,6 +120,7 @@ export interface Settings {
   header: string;
   signature: string;
   rpDate: string;
+  rpYear?: number;
   currency: string;
 }
 
