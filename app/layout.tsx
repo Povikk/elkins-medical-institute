@@ -3,8 +3,8 @@ import "./globals.css";
 import "./readability.css";
 
 export const metadata: Metadata = {
-  title: "Elkins Medical Institute — Registre RP",
-  description: "Registre médical fictif pour jeu de rôle western vers 1900.",
+  title: "Elkins Medical Institute — Registre médical",
+  description: "Registre médical de l’Elkins Medical Institute.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
