@@ -55,8 +55,8 @@ const randomPhotoFrame = (orientation: PhotoOrientation) => {
 };
 const photoOverlayStyle = (photo: PatientPhoto, orientation: PhotoOrientation = photo.orientation ?? "portrait") => ({
   "--photo-overlay": `url("${stableFrame(photo, orientation)}")`,
-  "--photo-inset-x": "2.5%",
-  "--photo-inset-y": "2.5%",
+  "--photo-inset-x": "5%",
+  "--photo-inset-y": "5%",
   "--photo-corner": orientation === "landscape" ? "7%" : "6%",
 } as React.CSSProperties);
 const applyPhotoFrame = (image: HTMLImageElement, photo: PatientPhoto) => {
@@ -82,11 +82,11 @@ async function preparePatientPhoto(file: File): Promise<{ dataUrl: string; width
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
   const context = canvas.getContext("2d");
   if (!context) { bitmap.close(); throw new Error("La photographie ne peut pas être préparée."); }
-  context.filter = "grayscale(55%) sepia(32%) saturate(78%) contrast(107%) brightness(104%)";
+  context.filter = "grayscale(28%) sepia(58%) saturate(76%) contrast(107%) brightness(103%)";
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   context.filter = "none";
   context.globalCompositeOperation = "soft-light";
-  context.fillStyle = "rgba(184, 140, 78, .045)";
+  context.fillStyle = "rgba(171, 119, 57, .07)";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.globalCompositeOperation = "source-over";
   const vignette = context.createRadialGradient(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * .22, canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * .72);
