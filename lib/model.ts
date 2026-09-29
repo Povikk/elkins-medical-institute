@@ -9,6 +9,7 @@ export interface Patient {
   age: string;
   profession: string;
   address: string;
+  telegram?: string;
   emergencyContact: string;
   bloodType?: string;
   firstVisit: string;
@@ -33,6 +34,7 @@ export interface Consultation {
   id: string;
   patientId: string;
   date: string;
+  time?: string;
   category: string;
   reason: string;
   symptoms: string;
