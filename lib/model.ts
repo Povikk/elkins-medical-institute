@@ -6,6 +6,9 @@ export interface PatientPhoto {
   date: string;
   label: string;
   overlay?: string;
+  kind?: string;
+  location?: string;
+  stage?: string;
 }
 
 export interface Patient {
@@ -94,6 +97,22 @@ export interface Fee {
   isDemo?: boolean;
 }
 
+export interface PsychologyNote {
+  id: string;
+  patientId: string;
+  date: string;
+  time?: string;
+  reason: string;
+  disposition: string;
+  behavior: string;
+  themes: string;
+  observations: string;
+  guidance: string;
+  followUp: string;
+  alertSigns: string;
+  isDemo?: boolean;
+}
+
 export interface Settings {
   doctor: string;
   practice: string;
@@ -110,5 +129,6 @@ export interface AppData {
   appointments: Appointment[];
   prescriptions: Prescription[];
   fees: Fee[];
+  psychologyNotes?: PsychologyNote[];
   settings: Settings;
 }
