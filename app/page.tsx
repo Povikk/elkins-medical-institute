@@ -47,7 +47,7 @@ async function preparePatientPhoto(file: File): Promise<string> {
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
   const context = canvas.getContext("2d");
   if (!context) { bitmap.close(); throw new Error("La photographie ne peut pas être préparée."); }
-  context.filter = "grayscale(42%) sepia(74%) contrast(105%) brightness(112%)";
+  context.filter = "grayscale(58%) sepia(34%) saturate(88%) contrast(106%) brightness(106%)";
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   context.filter = "none";
   context.globalCompositeOperation = "soft-light";
