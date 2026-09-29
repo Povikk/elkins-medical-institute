@@ -5,6 +5,7 @@ export interface PatientPhoto {
   dataUrl: string;
   date: string;
   label: string;
+  overlay?: string;
 }
 
 export interface Patient {
