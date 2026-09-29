@@ -19,7 +19,13 @@ export async function loadData(): Promise<AppData | null> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const request = db.transaction(STORE, "readonly").objectStore(STORE).get(KEY);
-    request.onsuccess = () => resolve(request.result ?? null);
+    request.onsuccess = () => {
+      const stored = request.result as AppData | undefined;
+      if (stored?.settings?.practice === "Cabinet médical de Valentine") {
+        stored.settings = { ...stored.settings, practice: "Elkins Medical Institute" };
+      }
+      resolve(stored ?? null);
+    };
     request.onerror = () => reject(request.error);
   });
 }

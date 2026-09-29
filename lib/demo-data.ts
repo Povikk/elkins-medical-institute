@@ -3,7 +3,7 @@ import type { AppData } from "./model";
 export const demoData: AppData = {
   settings: {
     doctor: "Dr. Élias Moreau",
-    practice: "Cabinet médical de Valentine",
+    practice: "Elkins Medical Institute",
     city: "Valentine, New Hanover",
     header: "Soins, chirurgie et visites à domicile",
     signature: "E. Moreau, M.D.",

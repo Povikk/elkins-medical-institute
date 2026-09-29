@@ -1,5 +1,12 @@
 export type PatientStatus = "actif" | "convalescence" | "hospitalise" | "decede" | "archive";
 
+export interface PatientPhoto {
+  id: string;
+  dataUrl: string;
+  date: string;
+  label: string;
+}
+
 export interface Patient {
   id: string;
   dossier: string;
@@ -17,6 +24,7 @@ export interface Patient {
   allergies: string;
   confidential: string;
   status: PatientStatus;
+  photos?: PatientPhoto[];
   isDemo?: boolean;
 }
 

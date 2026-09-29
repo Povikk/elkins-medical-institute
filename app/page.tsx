@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Archive, BookOpen, CalendarDays, ChevronRight, ClipboardPlus, FileDown, FileText, HeartPulse, Landmark, Menu, Plus, Printer, Search, Settings as SettingsIcon, Stethoscope, UsersRound, WalletCards, X } from "lucide-react";
+import { Archive, BookOpen, CalendarDays, Camera, ChevronRight, ClipboardPlus, FileDown, FileText, HeartPulse, Landmark, Menu, Plus, Printer, Search, Settings as SettingsIcon, Stethoscope, Trash2, UsersRound, WalletCards, X } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,32 @@ const field = "ledger-input";
 const commonReasons = ["Blessure par balle", "Chute de cheval", "Bagarre", "Accident de diligence", "Morsure d’animal", "Brûlure", "Coupure", "Fièvre ou maladie", "Visite de contrôle"];
 const commonSymptoms = ["Douleur vive", "Saignement", "Perte de connaissance", "Fièvre", "Vertiges", "Respiration difficile", "Nausées", "Confusion ou agitation"];
 const commonCare = ["Nettoyage de la plaie", "Désinfection", "Suture", "Bandage", "Extraction du projectile", "Immobilisation", "Repos et surveillance", "Hospitalisation"];
+
+async function preparePatientPhoto(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Ce fichier n’est pas une image.");
+  if (file.size > 12 * 1024 * 1024) throw new Error("La photographie dépasse 12 Mo.");
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const context = canvas.getContext("2d");
+  if (!context) { bitmap.close(); throw new Error("La photographie ne peut pas être préparée."); }
+  context.filter = "grayscale(65%) sepia(88%) contrast(112%) brightness(92%)";
+  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  context.filter = "none";
+  context.globalCompositeOperation = "multiply";
+  context.fillStyle = "rgba(102, 73, 42, .14)";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.globalCompositeOperation = "source-over";
+  const vignette = context.createRadialGradient(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * .22, canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * .72);
+  vignette.addColorStop(0, "rgba(20, 12, 7, 0)");
+  vignette.addColorStop(1, "rgba(20, 12, 7, .48)");
+  context.fillStyle = vignette;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", .82);
+}
 
 export default function Home() {
   const [data, setData] = useState<AppData | null>(null);
@@ -76,6 +102,22 @@ export default function Home() {
     if (String(f.get("injuryType") || "").trim()) item.injuries.push({ id: uid("i"), type: String(f.get("injuryType")), location: String(f.get("injuryLocation")), severity: String(f.get("severity")), circumstances: String(f.get("circumstances")), care: String(f.get("injuryCare")), healed: f.get("healed") === "on" });
     update({ consultations: [item, ...data.consultations] }); setDialog(null); toast.success("Consultation consignée");
   };
+  const addPatientPhoto = async (patient: Patient, file: File) => {
+    try {
+      const dataUrl = await preparePatientPhoto(file);
+      const photo = { id: uid("photo"), dataUrl, date: data.settings.rpDate, label: file.name.replace(/\.[^.]+$/, "") || "Photographie médicale" };
+      const nextPatient = { ...patient, photos: [photo, ...(patient.photos ?? [])] };
+      update({ patients: data.patients.map((p) => p.id === patient.id ? nextPatient : p) });
+      setSelectedPatient(nextPatient);
+      toast.success("Photographie ajoutée au dossier");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "La photographie n’a pas pu être ajoutée."); }
+  };
+  const deletePatientPhoto = (patient: Patient, photoId: string) => {
+    const nextPatient = { ...patient, photos: (patient.photos ?? []).filter((photo) => photo.id !== photoId) };
+    update({ patients: data.patients.map((p) => p.id === patient.id ? nextPatient : p) });
+    setSelectedPatient(nextPatient);
+    toast.success("Photographie retirée du dossier");
+  };
   const saveAppointment = (f: FormData) => { const item: Appointment = { id: uid("a"), patientId: String(f.get("patientId")), date: String(f.get("date")), time: String(f.get("time")), reason: String(f.get("reason")), status: "prevu", notes: String(f.get("notes")), isDemo: false }; update({ appointments: [item, ...data.appointments] }); setDialog(null); toast.success("Rendez-vous ajouté"); };
   const savePrescription = (f: FormData) => { const item: Prescription = { id: uid("rx"), patientId: String(f.get("patientId")), date: String(f.get("date") || data.settings.rpDate), treatment: String(f.get("treatment")), dosage: String(f.get("dosage")), instructions: String(f.get("instructions")), signature: String(f.get("signature") || data.settings.signature), isDemo: false }; update({ prescriptions: [item, ...data.prescriptions] }); setDialog(null); setPrintDoc({ type: "Ordonnance", patient: patientById(item.patientId), prescription: item }); toast.success("Ordonnance enregistrée"); };
   const saveFee = (f: FormData) => { const item: Fee = { id: uid("f"), patientId: String(f.get("patientId")), date: String(f.get("date") || data.settings.rpDate), label: String(f.get("label")), amount: Number(f.get("amount") || 0), status: String(f.get("status")) as Fee["status"], isDemo: false }; update({ fees: [item, ...data.fees] }); setDialog(null); toast.success("Écriture portée au registre"); };
@@ -92,7 +134,7 @@ export default function Home() {
     <aside className={`leather-nav ${mobileNav ? "open" : ""}`}><button className="close-nav" onClick={() => setMobileNav(false)} aria-label="Fermer"><X /></button><div className="brand-seal"><span>✚</span><small>Cabinet médical</small><strong>{data.settings.city}</strong></div><nav>{nav.map(({ id, label, icon: Icon }) => <button key={id} className={view === id ? "active" : ""} onClick={() => { setView(id); setSelectedPatient(null); setMobileNav(false); }}><Icon/><span>{label}</span></button>)}</nav><div className="nav-footer"><span>Date du registre</span><strong>{data.settings.rpDate}</strong><small>Données conservées sur cet appareil</small></div></aside>
     <main className="desk"><div className="ledger"><header className="ledger-heading"><div><p className="eyebrow">{data.settings.practice}</p><h1>{nav.find((n) => n.id === view)?.label}</h1></div><div className="heading-actions"><button className="icon-btn" onClick={exportJson} title="Exporter"><FileDown/></button><button className="primary-btn" onClick={() => { setEditingPatient(null); setDialog(view === "consultations" ? "consultation" : "patient"); }}><Plus/>{view === "consultations" ? "Nouvelle consultation" : "Nouveau patient"}</button></div></header>
       {view === "bureau" && <Dashboard data={data} upcoming={upcoming} followUps={followUps} onView={setView} onPatient={setSelectedPatient} onNewConsult={() => setDialog("consultation")}/>} 
-      {view === "patients" && <PatientsView patients={patients} search={search} setSearch={setSearch} selected={selectedPatient} consultations={data.consultations} onSelect={setSelectedPatient} onEdit={openPatient} onArchive={(p) => update({ patients: data.patients.map((x) => x.id === p.id ? { ...x, status: "archive" } : x) })} onDelete={setDeletePatient} onPrint={(p) => setPrintDoc({ type: "Fiche patient", patient: p })}/>} 
+      {view === "patients" && <PatientsView patients={patients} search={search} setSearch={setSearch} selected={selectedPatient} consultations={data.consultations} onSelect={setSelectedPatient} onEdit={openPatient} onArchive={(p) => update({ patients: data.patients.map((x) => x.id === p.id ? { ...x, status: "archive" } : x) })} onDelete={setDeletePatient} onPrint={(p) => setPrintDoc({ type: "Fiche patient", patient: p })} onAddPhoto={addPatientPhoto} onDeletePhoto={deletePatientPhoto}/>}
       {view === "consultations" && <ConsultationsView items={data.consultations} patients={data.patients} onPrint={(c) => setPrintDoc({ type: "Fiche de consultation", patient: patientById(c.patientId), consultation: c })}/>} 
       {view === "ordonnances" && <SimpleRegister title="Ordonnances délivrées" empty="Aucune ordonnance n’a encore été rédigée." action="Rédiger une ordonnance" onAction={() => setDialog("prescription")} rows={data.prescriptions.map((p) => ({ id: p.id, title: fullName(patientById(p.patientId)), meta: `${p.date} · ${p.treatment}`, status: "Ordonnance", demo: p.isDemo, onClick: () => setPrintDoc({ type: "Ordonnance", patient: patientById(p.patientId), prescription: p }) }))}/>} 
       {view === "rendezvous" && <AppointmentsView items={data.appointments} patients={data.patients} onAdd={() => setDialog("appointment")} onStatus={(id, status) => update({ appointments: data.appointments.map((a) => a.id === id ? { ...a, status } : a) })}/>} 
@@ -115,7 +157,8 @@ function Dashboard({ data, upcoming, followUps, onView, onPatient, onNewConsult 
   </div>;
 }
 
-function PatientsView({ patients, search, setSearch, selected, consultations, onSelect, onEdit, onArchive, onDelete, onPrint }: { patients: Patient[]; search: string; setSearch: (s: string) => void; selected: Patient | null; consultations: Consultation[]; onSelect: (p: Patient | null) => void; onEdit: (p?: Patient) => void; onArchive: (p: Patient) => void; onDelete: (p: Patient) => void; onPrint: (p: Patient) => void }) {
+function PatientsView({ patients, search, setSearch, selected, consultations, onSelect, onEdit, onArchive, onDelete, onPrint, onAddPhoto, onDeletePhoto }: { patients: Patient[]; search: string; setSearch: (s: string) => void; selected: Patient | null; consultations: Consultation[]; onSelect: (p: Patient | null) => void; onEdit: (p?: Patient) => void; onArchive: (p: Patient) => void; onDelete: (p: Patient) => void; onPrint: (p: Patient) => void; onAddPhoto: (p: Patient, file: File) => void; onDeletePhoto: (p: Patient, photoId: string) => void }) {
+  const photoInput = useRef<HTMLInputElement>(null);
   if (selected) {
     const history = consultations.filter((c) => c.patientId === selected.id);
     const last = history[0];
@@ -124,6 +167,7 @@ function PatientsView({ patients, search, setSearch, selected, consultations, on
       <div className="file-head"><div><p className="eyebrow">Dossier n° {selected.dossier} {selected.isDemo && <em className="demo-badge">Démonstration</em>}</p><h2>{selected.firstName} {selected.lastName.toUpperCase()}</h2><p>{selected.age || "Âge non renseigné"} · {selected.profession || "Profession non renseignée"}</p>{selected.telegram && <p className="telegram-contact">Télégramme : <strong>{selected.telegram}</strong></p>}</div><span className={`large-status ${selected.status}`}>{statuses[selected.status]}</span></div>
       <div className="file-actions"><button onClick={() => onEdit(selected)}>Modifier</button><button onClick={() => onPrint(selected)}><Printer/>Imprimer</button><button onClick={() => onArchive(selected)}><Archive/>Archiver</button><button className="danger-link" onClick={() => onDelete(selected)}>Supprimer</button></div>
       <section className="clinical-summary"><div className="allergy-alert"><span>Allergies connues</span><strong>{selected.allergies || "Aucune signalée"}</strong></div><div><span>Dernier motif</span><strong>{last?.reason || "Aucune consultation"}</strong></div><div><span>Derniers soins</span><strong>{last?.care || "Aucun soin consigné"}</strong></div></section>
+      <section className="paper-section photo-register"><div className="section-title"><h2>Photographies médicales ({selected.photos?.length ?? 0})</h2><button className="outline-btn" onClick={() => photoInput.current?.click()}><Camera/>Ajouter une photographie</button></div><input ref={photoInput} hidden type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0]; if (file) onAddPhoto(selected, file); event.currentTarget.value = ""; }}/>{selected.photos?.length ? <div className="medical-photo-grid">{selected.photos.map((photo) => <article key={photo.id}><div className="antique-photo"><img src={photo.dataUrl} alt={`${photo.label} — ${fullName(selected)}`}/></div><footer><span><strong>{photo.label}</strong><small>{photo.date}</small></span><button type="button" aria-label={`Retirer ${photo.label}`} title="Retirer la photographie" onClick={() => { if (window.confirm("Retirer cette photographie du dossier ?")) onDeletePhoto(selected, photo.id); }}><Trash2/></button></footer></article>)}</div> : <div className="photo-empty"><Camera/><p>Aucune photographie. Les images ajoutées recevront automatiquement un rendu ancien.</p></div>}</section>
       <Paper title={`Consultations (${history.length})`}>{history.length ? <div className="patient-consultations">{history.map((c) => <article key={c.id}><header><span>{c.date}{c.time && ` à ${c.time}`}</span><em>{c.category}</em></header><h3>{c.reason}</h3><div className="care-pair"><p><b>Symptômes</b>{c.symptoms || "Non précisés"}</p><p><b>Soins réalisés</b>{c.care || "Non précisés"}</p></div>{(c.diagnosis || c.recommendations) && <p className="consult-note"><b>{c.diagnosis && `Diagnostic : ${c.diagnosis}`}</b>{c.recommendations && ` · Suite : ${c.recommendations}`}</p>}</article>)}</div> : <Empty text="Aucune consultation pour ce patient."/>}</Paper>
       <details className="secondary-details"><summary>Informations complémentaires du dossier</summary><div className="patient-grid"><div><InfoLine label="Télégramme" value={selected.telegram}/><InfoLine label="Domicile" value={selected.address}/><InfoLine label="Personne à prévenir" value={selected.emergencyContact}/><InfoLine label="Première visite" value={selected.firstVisit}/></div><div><InfoLine label="Antécédents" value={selected.history}/><InfoLine label="Notes confidentielles" value={selected.confidential}/>{selected.bloodType && <InfoLine label="Groupe sanguin (information exceptionnelle)" value={selected.bloodType}/>}</div></div></details>
     </div>;

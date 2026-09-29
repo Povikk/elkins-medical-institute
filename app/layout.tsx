@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Registre Médical RP — Cabinet de Valentine",
+  title: "Elkins Medical Institute — Registre RP",
   description: "Registre médical fictif pour jeu de rôle western vers 1900.",
   icons: {
     icon: "/favicon.svg",
