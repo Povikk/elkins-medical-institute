@@ -6,6 +6,7 @@ export interface PatientPhoto {
   date: string;
   label: string;
   overlay?: string;
+  orientation?: "portrait" | "landscape";
   kind?: string;
   location?: string;
   stage?: string;

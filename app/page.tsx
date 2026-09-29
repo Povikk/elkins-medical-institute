@@ -33,19 +33,46 @@ const mindStates = ["Calme", "Anxieux", "Abattu", "Irritable", "Agité", "Confus
 const behaviors = ["Coopératif", "Méfiant", "Évite le regard", "Discours décousu", "Silencieux", "Émotif", "Sur ses gardes", "Fatigué"];
 const rpDateForYear = (year = 1899, now = new Date()) => new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(year, now.getMonth(), now.getDate()));
 const currentTime = () => new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", hour12: false });
-const photoOverlays = [
-  "/antique-photo-overlay.png",
-  "/photo-overlays/antique-01.png",
-  "/photo-overlays/antique-02.png",
-  "/photo-overlays/antique-03.png",
-  "/photo-overlays/antique-04.png",
-  "/photo-overlays/antique-05.png",
-  "/photo-overlays/antique-06.png",
+type PhotoOrientation = "portrait" | "landscape";
+const portraitPhotoFrames = [
+  "/photo-frames/portrait-01.png", "/photo-frames/portrait-02.png", "/photo-frames/portrait-03.png",
+  "/photo-frames/portrait-04.png", "/photo-frames/portrait-05.png",
 ];
-const randomPhotoOverlay = () => photoOverlays[Math.floor(Math.random() * photoOverlays.length)];
-const photoOverlayStyle = (photo: PatientPhoto) => ({ "--photo-overlay": `url("${photo.overlay ?? "/antique-photo-overlay.png"}")` } as React.CSSProperties);
+const landscapePhotoFrames = [
+  "/photo-frames/landscape-01.png", "/photo-frames/landscape-02.png",
+  "/photo-frames/landscape-03.png", "/photo-frames/landscape-04.png",
+];
+const framesFor = (orientation: PhotoOrientation) => orientation === "landscape" ? landscapePhotoFrames : portraitPhotoFrames;
+const stableFrame = (photo: PatientPhoto, orientation: PhotoOrientation) => {
+  const frames = framesFor(orientation);
+  if (photo.overlay && frames.includes(photo.overlay)) return photo.overlay;
+  const index = Array.from(photo.id).reduce((sum, char) => sum + char.charCodeAt(0), 0) % frames.length;
+  return frames[index];
+};
+const randomPhotoFrame = (orientation: PhotoOrientation) => {
+  const frames = framesFor(orientation);
+  return frames[Math.floor(Math.random() * frames.length)];
+};
+const photoOverlayStyle = (photo: PatientPhoto, orientation: PhotoOrientation = photo.orientation ?? "portrait") => ({
+  "--photo-overlay": `url("${stableFrame(photo, orientation)}")`,
+  "--photo-inset-x": orientation === "landscape" ? "10%" : "13%",
+  "--photo-inset-y": orientation === "landscape" ? "12%" : "9%",
+  "--photo-corner": orientation === "landscape" ? "13%" : "11%",
+} as React.CSSProperties);
+const applyPhotoFrame = (image: HTMLImageElement, photo: PatientPhoto) => {
+  const orientation: PhotoOrientation = image.naturalWidth >= image.naturalHeight ? "landscape" : "portrait";
+  const frame = image.parentElement;
+  if (!frame) return orientation;
+  const style = photoOverlayStyle(photo, orientation) as Record<string, string>;
+  Object.entries(style).forEach(([property, value]) => frame.style.setProperty(property, value));
+  return orientation;
+};
+const applyAutomaticPhotoFrame = (image: HTMLImageElement) => {
+  if (!image.naturalWidth || !image.naturalHeight) return;
+  applyPhotoFrame(image, { id: image.currentSrc || image.src, dataUrl: image.src, date: "", label: "" });
+};
 
-async function preparePatientPhoto(file: File): Promise<string> {
+async function preparePatientPhoto(file: File): Promise<{ dataUrl: string; width: number; height: number }> {
   if (!file.type.startsWith("image/")) throw new Error("Ce fichier n’est pas une image.");
   if (file.size > 12 * 1024 * 1024) throw new Error("La photographie dépasse 12 Mo.");
   const bitmap = await createImageBitmap(file);
@@ -55,21 +82,21 @@ async function preparePatientPhoto(file: File): Promise<string> {
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
   const context = canvas.getContext("2d");
   if (!context) { bitmap.close(); throw new Error("La photographie ne peut pas être préparée."); }
-  context.filter = "grayscale(58%) sepia(34%) saturate(88%) contrast(106%) brightness(106%)";
+  context.filter = "grayscale(82%) sepia(18%) saturate(72%) contrast(108%) brightness(106%)";
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   context.filter = "none";
   context.globalCompositeOperation = "soft-light";
-  context.fillStyle = "rgba(184, 140, 78, .06)";
+  context.fillStyle = "rgba(184, 140, 78, .025)";
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.globalCompositeOperation = "source-over";
   const vignette = context.createRadialGradient(canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * .22, canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * .72);
   vignette.addColorStop(0, "rgba(20, 12, 7, 0)");
-  vignette.addColorStop(1, "rgba(20, 12, 7, .18)");
+  vignette.addColorStop(1, "rgba(20, 12, 7, .12)");
   context.fillStyle = vignette;
   context.fillRect(0, 0, canvas.width, canvas.height);
   bitmap.close();
   const webp = canvas.toDataURL("image/webp", .78);
-  return webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", .78);
+  return { dataUrl: webp.startsWith("data:image/webp") ? webp : canvas.toDataURL("image/jpeg", .78), width: canvas.width, height: canvas.height };
 }
 
 export default function Home() {
@@ -88,6 +115,18 @@ export default function Home() {
 
   useEffect(() => { loadData().then((stored) => { const base = stored ?? demoData; const rpYear = Number(base.settings.rpYear) || 1899; setData({ ...base, settings: { ...base.settings, rpYear, rpDate: rpDateForYear(rpYear) } }); }).catch(() => { setData({ ...demoData, settings: { ...demoData.settings, rpDate: rpDateForYear(demoData.settings.rpYear) } }); toast.error("La sauvegarde locale n’a pas pu être ouverte."); }); }, []);
   useEffect(() => { if (!data) return; const timer = setTimeout(() => saveData(data).catch(() => toast.error("Échec de la sauvegarde locale.")), 250); return () => clearTimeout(timer); }, [data]);
+  useEffect(() => {
+    const prepare = () => document.querySelectorAll<HTMLImageElement>(".antique-photo img").forEach((image) => {
+      if (image.complete) applyAutomaticPhotoFrame(image);
+      else image.addEventListener("load", () => applyAutomaticPhotoFrame(image), { once: true });
+    });
+    prepare();
+    const observer = new MutationObserver((entries) => entries.forEach((entry) => entry.addedNodes.forEach((node) => {
+      if (node instanceof HTMLElement) prepare();
+    })));
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [view, selectedPatient, pendingPhotoImport, photoPreview]);
   useEffect(() => {
     if (!data) return;
     const context = (document as Document & { modelContext?: { registerTool: (tool: unknown, options?: { signal?: AbortSignal }) => void | Promise<void> } }).modelContext;
@@ -131,8 +170,9 @@ export default function Home() {
     let refused = 0;
     for (const file of files) {
       try {
-        const dataUrl = await preparePatientPhoto(file);
-        photos.push({ id: uid("photo"), dataUrl, date: data.settings.rpDate, label: file.name.replace(/\.[^.]+$/, "") || "Photographie médicale", overlay: randomPhotoOverlay() });
+        const prepared = await preparePatientPhoto(file);
+        const orientation: PhotoOrientation = prepared.width >= prepared.height ? "landscape" : "portrait";
+        photos.push({ id: uid("photo"), dataUrl: prepared.dataUrl, date: data.settings.rpDate, label: file.name.replace(/\.[^.]+$/, "") || "Photographie médicale", orientation, overlay: randomPhotoFrame(orientation) });
       } catch { refused += 1; }
     }
     if (!photos.length) { toast.error("Aucune photographie valide n’a pu être ajoutée.", { id: notice }); return; }
