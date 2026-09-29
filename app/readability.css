@@ -110,6 +110,125 @@
   font-size: 13px;
 }
 
+.recent-care-list {
+  gap: 10px;
+}
+
+.recent-care-list button {
+  padding: 14px;
+  background: #fbf2de;
+  border: 1px solid #ad936c;
+  box-shadow: 0 2px 0 rgba(81, 53, 30, 0.08);
+}
+
+.recent-care-list button:hover {
+  background: #fff8e8;
+  border-color: #8f7048;
+}
+
+.recent-care-list button > span:nth-child(2),
+.recent-care-list button > span:nth-child(3) {
+  min-height: 58px;
+  padding: 10px 12px;
+  color: #2d231b;
+  background: #fffaf0;
+  border-left: 4px solid #742f31;
+}
+
+.recent-care-list button > span:nth-child(3) {
+  background: #f4f4e7;
+  border-left-color: #253f36;
+}
+
+.recent-care-list span:nth-child(2) em {
+  color: #69272a;
+  font-weight: 700;
+}
+
+.recent-care-list span:nth-child(3) em {
+  color: #234236;
+  font-weight: 700;
+}
+
+.patient-consultations {
+  display: grid;
+  gap: 14px;
+}
+
+.patient-consultations article {
+  padding: 17px 18px;
+  background: #fbf2de;
+  border: 1px solid #ad936c;
+  box-shadow: 0 2px 0 rgba(81, 53, 30, 0.08);
+}
+
+.patient-consultations article:last-child {
+  border-bottom: 1px solid #ad936c;
+}
+
+.patient-consultations header {
+  color: #594633;
+  border-bottom: 1px solid rgba(79, 53, 31, 0.22);
+  padding-bottom: 9px;
+}
+
+.patient-consultations header em {
+  color: #69272a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.patient-consultations h3 {
+  color: #271f18;
+  font-size: 20px;
+}
+
+.patient-consultations .care-pair p {
+  color: #2d231b;
+  background: #fffaf0;
+  border: 1px solid rgba(104, 67, 38, 0.2);
+  border-left: 4px solid #742f31;
+}
+
+.patient-consultations .care-pair p:last-child {
+  background: #f4f4e7;
+  border-color: rgba(39, 68, 54, 0.24);
+  border-left-color: #253f36;
+}
+
+.patient-consultations .care-pair b {
+  color: #69272a;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.patient-consultations .care-pair p:last-child b {
+  color: #234236;
+}
+
+.patient-consultations .consult-note {
+  color: #51402f;
+  background: rgba(255, 250, 238, 0.58);
+  border-left: 3px solid #9b7a4e;
+  padding: 9px 11px;
+}
+
+.clinical-summary {
+  border-color: #a68a62;
+  background: #fbf2de;
+  box-shadow: 0 2px 0 rgba(81, 53, 30, 0.08);
+}
+
+.clinical-summary > div:nth-child(3) {
+  background: #f4f4e7;
+}
+
+.clinical-summary > div:nth-child(3) span {
+  color: #315044;
+}
+
 @media (max-width: 900px) {
   .consult-date {
     border-right: 0;
